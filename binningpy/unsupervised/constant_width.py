@@ -99,13 +99,13 @@ class ConstantWidthBinning(BinningBase):
         self._data_min = data_min
         self._data_max = data_max
         self._data_range = data_range
-        
+
         if self.confined:
             self._step = self._data_range / self.bin_nbr
-            self._bins = np.zeros((self._step.shape[0],self.bin_nbr))
+            self._bins = np.zeros((self._step.shape[0], self.bin_nbr))
             res = []
             for i in range(self.bin_nbr):
-                r = data_min+_step*i
+                r = data_min + _step * i
                 res.append(r)
             res.append(data_max)
             bins = np.array(res)
@@ -115,36 +115,41 @@ class ConstantWidthBinning(BinningBase):
             self._bins = bins.T
         else:
             self._step = self._data_range / (self.bin_nbr - 2)
-            self._bins = np.zeros((self._step.shape[0],(self.bin_nbr - 2)))
+            self._bins = np.zeros((self._step.shape[0], (self.bin_nbr - 2)))
             res = []
             for i in range(self.bin_nbr - 2):
-                r = data_min+_step*i
+                r = data_min + _step * i
                 res.append(r)
             res.append(data_max)
             bins = np.array(res)
             self._bins = bins.T
         return self
 
-    def _transform(self,x:float,features_line:int)->int:
-        for i in range(len(self._bins[features_line])-1):
+    def _transform_item(self, x, features_line)->int:
+        for i in range(len(self._bins[features_line]) - 1):
             if self.confined:
-                if self._bins[i] <= x <self._bins[i+1]:
+                if self._bins[i] <= x < self._bins[i + 1]:
                     return i
                 else:
                     continue
             else:
-                if self._bins[i] <= x <self._bins[i+1]:
-                    return i+1
+                if self._bins[i] <= x < self._bins[i + 1]:
+                    return i + 1
                 else:
                     continue
         else:
             if self.confined:
                 raise AttributeError(f"{x} not in range")
             else:
-                if x>=self._bins[-1]:
-                    return len(self._bins)+1
-                if x< self._bins[0]:
+                if x >= self._bins[-1]:
+                    return len(self._bins) + 1
+                if x < self._bins[0]:
                     return 0
+
+    def _transform(self, X, features_line):
+        for i,value in enumerate(X):
+            X[i] = self._transform_item(value,features_line)
+        return X
 
     def transform(self, X):
         """连续数据变换为离散值.
@@ -157,10 +162,10 @@ class ConstantWidthBinning(BinningBase):
         check_is_fitted(self, '_bins')
 
         X = check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
-        
-
-        
-        return 
+        result = []
+        for features_line, x in enumerate(X.T):
+            result.append(self._transform(x, features_line))
+        return np.array(result).T
 
     def inverse_transform(self, X):
         """逆变换.
@@ -170,9 +175,9 @@ class ConstantWidthBinning(BinningBase):
         X : array-like, shape [n_samples, n_features]
             Input data that will be transformed. It cannot be sparse.
         """
-        check_is_fitted(self, 'scale_')
+        check_is_fitted(self, '_bins')
 
-        X = check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
+        X=check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
 
         X -= self.min_
         X /= self.scale_
