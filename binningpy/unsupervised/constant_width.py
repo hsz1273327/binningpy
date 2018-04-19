@@ -5,7 +5,11 @@ from typing import (
 )
 from ..base import BinningBase
 from sklearn.utils import check_array
-from sklearn.utils.validation import FLOAT_DTYPES
+from sklearn.utils.validation import (
+    FLOAT_DTYPES,
+    check_is_fitted
+)
+
 
 class ConstantWidthBinning(BinningBase):
     """等宽分箱.
@@ -16,13 +20,22 @@ class ConstantWidthBinning(BinningBase):
         copy (bool): 是否复制输入
 
     Protected:
-        _bins (List[float]): 分箱的间隔位置组成的list,间隔点属于其左边的区间
+        _bins (List[float]): 分箱的间隔位置组成的list,相邻两点左开右闭
         _data_min (float): 训练数据的最小值
         _data_max (float): 训练数据的最大值
-        _step (float): 间隔大小
+        _n_samples_seen (int): 训练的X样本大小
+        _data_range (float): 最大值与最小值间的距离
+        _step (float): 每步间隔大小
     """
 
-    def __init__(self, bin_nbr:int=4,confined:bool=True, copy:bool=True)->None:
+    def __init__(self, bin_nbr: int=4, confined: bool=True, copy: bool=True)->None:
+        if not isinstance(bin_nbr, int)
+            raise AttributeError("bin number must be int")
+        if confined and bin_nbr <= 0:
+            raise AttributeError("bin number must > 0 when confined is True")
+        if not confined and bin_nbr <= 2:
+            raise AttributeError("bin number must > 2 when confined is False")
+
         self.bin_nbr = bin_nbr
         self.confined = confined
         self.copy = copy
@@ -39,24 +52,23 @@ class ConstantWidthBinning(BinningBase):
             del self._bins
             del self._data_min
             del self._data_max
+            del self._n_samples_seen
+            del self._data_range
             del self._step
 
-    def fit(self, X:Sequence[float], y=None)->None:
+    def fit(self, X, y=None)->None:
         """[summary]
 
         Args:
-            X ([type]): [description]
-            y ([type], optional): Defaults to None. [description]
+            X (Sequence[float]): 待训练的连续型参数
+            y (Optional[Sequence[float]]): Defaults to None. 没用
 
-        Returns:
-            [type]: [description]
         """
-
         # Reset internal state before fitting
         self._reset()
         return self.partial_fit(X, y)
 
-    def partial_fit(self, X:Sequence[float], y=None)->None:
+    def partial_fit(self, X, y=None)->None:
         """
 
         Parameters
@@ -75,22 +87,64 @@ class ConstantWidthBinning(BinningBase):
         data_max = np.max(X, axis=0)
 
         # First pass
-        if not hasattr(self, 'n_samples_seen_'):
-            self.n_samples_seen_ = X.shape[0]
+        if not hasattr(self, '_n_samples_seen'):
+            self._n_samples_seen = X.shape[0]
         # Next steps
         else:
-            data_min = np.minimum(self.data_min_, data_min)
-            data_max = np.maximum(self.data_max_, data_max)
-            self.n_samples_seen_ += X.shape[0]
+            data_min = np.minimum(self._data_min, data_min)
+            data_max = np.maximum(self._data_max, data_max)
+            self._n_samples_seen += X.shape[0]
 
         data_range = data_max - data_min
-        self.scale_ = ((feature_range[1] - feature_range[0]) /
-                       _handle_zeros_in_scale(data_range))
-        self.min_ = feature_range[0] - data_min * self.scale_
-        self.data_min_ = data_min
-        self.data_max_ = data_max
-        self.data_range_ = data_range
+        self._data_min = data_min
+        self._data_max = data_max
+        self._data_range = data_range
+        
+        if self.confined:
+            self._step = self._data_range / self.bin_nbr
+            self._bins = np.zeros((self._step.shape[0],self.bin_nbr))
+            res = []
+            for i in range(self.bin_nbr):
+                r = data_min+_step*i
+                res.append(r)
+            res.append(data_max)
+            bins = np.array(res)
+            # 最左和最右都扩大1%以囊括最小最大值
+            bins[0] = bins[0] * 0.99 if bins[0] > 0 else bins[0] - 0.01
+            bins[-1] = bins[-1] * 1.01
+            self._bins = bins.T
+        else:
+            self._step = self._data_range / (self.bin_nbr - 2)
+            self._bins = np.zeros((self._step.shape[0],(self.bin_nbr - 2)))
+            res = []
+            for i in range(self.bin_nbr - 2):
+                r = data_min+_step*i
+                res.append(r)
+            res.append(data_max)
+            bins = np.array(res)
+            self._bins = bins.T
         return self
+
+    def _transform(self,x:float,features_line:int)->int:
+        for i in range(len(self._bins[features_line])-1):
+            if self.confined:
+                if self._bins[i] <= x <self._bins[i+1]:
+                    return i
+                else:
+                    continue
+            else:
+                if self._bins[i] <= x <self._bins[i+1]:
+                    return i+1
+                else:
+                    continue
+        else:
+            if self.confined:
+                raise AttributeError(f"{x} not in range")
+            else:
+                if x>=self._bins[-1]:
+                    return len(self._bins)+1
+                if x< self._bins[0]:
+                    return 0
 
     def transform(self, X):
         """连续数据变换为离散值.
@@ -100,13 +154,13 @@ class ConstantWidthBinning(BinningBase):
         X : array-like, shape [n_samples, n_features]
             Input data that will be transformed.
         """
-        check_is_fitted(self, 'scale_')
+        check_is_fitted(self, '_bins')
 
         X = check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
+        
 
-        X *= self.scale_
-        X += self.min_
-        return X
+        
+        return 
 
     def inverse_transform(self, X):
         """逆变换.
