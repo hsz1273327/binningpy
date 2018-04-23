@@ -27,19 +27,6 @@ class ConstantWidthBinning(BinningBase):
         _data_range (float): 最大值与最小值间的距离
         _step (float): 每步间隔大小
     """
-
-    def __init__(self, bin_nbr: int=4, confined: bool=True, copy: bool=True)->None:
-        if not isinstance(bin_nbr, int)
-            raise AttributeError("bin number must be int")
-        if confined and bin_nbr <= 0:
-            raise AttributeError("bin number must > 0 when confined is True")
-        if not confined and bin_nbr <= 2:
-            raise AttributeError("bin number must > 2 when confined is False")
-
-        self.bin_nbr = bin_nbr
-        self.confined = confined
-        self.copy = copy
-
     def _reset(self)->None:
         """Reset internal data-dependent state of the binning, if necessary.
 
@@ -125,60 +112,4 @@ class ConstantWidthBinning(BinningBase):
             self._bins = bins.T
         return self
 
-    def _transform_item(self, x, features_line)->int:
-        for i in range(len(self._bins[features_line]) - 1):
-            if self.confined:
-                if self._bins[i] <= x < self._bins[i + 1]:
-                    return i
-                else:
-                    continue
-            else:
-                if self._bins[i] <= x < self._bins[i + 1]:
-                    return i + 1
-                else:
-                    continue
-        else:
-            if self.confined:
-                raise AttributeError(f"{x} not in range")
-            else:
-                if x >= self._bins[-1]:
-                    return len(self._bins) + 1
-                if x < self._bins[0]:
-                    return 0
-
-    def _transform(self, X, features_line):
-        for i,value in enumerate(X):
-            X[i] = self._transform_item(value,features_line)
-        return X
-
-    def transform(self, X):
-        """连续数据变换为离散值.
-
-        Parameters
-        ----------
-        X : array-like, shape [n_samples, n_features]
-            Input data that will be transformed.
-        """
-        check_is_fitted(self, '_bins')
-
-        X = check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
-        result = []
-        for features_line, x in enumerate(X.T):
-            result.append(self._transform(x, features_line))
-        return np.array(result).T
-
-    def inverse_transform(self, X):
-        """逆变换.
-
-        Parameters
-        ----------
-        X : array-like, shape [n_samples, n_features]
-            Input data that will be transformed. It cannot be sparse.
-        """
-        check_is_fitted(self, '_bins')
-
-        X=check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
-
-        X -= self.min_
-        X /= self.scale_
-        return X
+    
