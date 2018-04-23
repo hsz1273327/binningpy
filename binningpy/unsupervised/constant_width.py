@@ -3,13 +3,13 @@ from typing import (
     Optional,
     Sequence
 )
-from ..base import BinningBase
+import numpy as np
 from sklearn.utils import check_array
 from sklearn.utils.validation import (
     FLOAT_DTYPES,
     check_is_fitted
 )
-
+from ..base import BinningBase
 
 class ConstantWidthBinning(BinningBase):
     """等宽分箱.
@@ -92,7 +92,7 @@ class ConstantWidthBinning(BinningBase):
             self._bins = np.zeros((self._step.shape[0], self.bin_nbr))
             res = []
             for i in range(self.bin_nbr):
-                r = data_min + _step * i
+                r = data_min + self._step * i
                 res.append(r)
             res.append(data_max)
             bins = np.array(res)
@@ -105,7 +105,7 @@ class ConstantWidthBinning(BinningBase):
             self._bins = np.zeros((self._step.shape[0], (self.bin_nbr - 2)))
             res = []
             for i in range(self.bin_nbr - 2):
-                r = data_min + _step * i
+                r = data_min + self._step * i
                 res.append(r)
             res.append(data_max)
             bins = np.array(res)

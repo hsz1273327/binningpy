@@ -51,8 +51,8 @@ class BinningBase(BaseEstimator, TransformerMixin):
             if self.confined:
                 raise AttributeError(f"{item} not in range")
             else:
-                if item >= self._bins[-1]:
-                    return len(bins) + 1
+                if item >= bins[-1]:
+                    return len(bins)
                 if item < bins[0]:
                     return 0
 

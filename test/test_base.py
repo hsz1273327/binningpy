@@ -24,9 +24,6 @@ def tearDownModule():
 class TestBinningBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.target_x = np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1)
-        cls.target_result = np.array([[0], [0], [1], [1], [1], [0], [1], [2], [2], [3], [3], [1]])
-        cls.bins = [[0, 2, 4, 6, 8]]
         print("setUpClass")
 
     @classmethod
@@ -56,17 +53,27 @@ class TestBinningBase(unittest.TestCase):
 
     def test_confined_transform(self):
         bb = BinningBase(4)
-        bb._bins = self.bins
-        result = bb.transform(self.target_x)
+        bb._bins = [[0, 2, 4, 6, 8]]
+        result = bb.transform(
+            np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
+        assert all(map(lambda x: x[0][0] == x[1][0], zip(result, np.array(
+            [[0], [0], [1], [1], [1], [0], [1], [2], [3], [3], [3], [1]]))))
+
+    def test_unconfined_transform(self):
+        bb = BinningBase(4, confined=False)
+        bb._bins = [[2, 4, 6]]
+        result = bb.transform(
+            np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
         print(result)
-        #self.assertSequenceEqual(result, self.target_result)
-        assert all(lambda x: x[0] == x[1], zip(result, self.target_result))
+        assert all(map(lambda x: x[0][0] == x[1][0], zip(result, np.array(
+            [[0], [0], [1], [1], [1], [0], [1], [2], [3], [3], [3], [1]]))))
 
 
 def BinningBase_suite():
     suite = unittest.TestSuite()
     suite.addTest(TestBinningBase("test_BinningBase_init"))
     suite.addTest(TestBinningBase("test_confined_transform"))
+    suite.addTest(TestBinningBase("test_unconfined_transform"))
     return suite
 
 
