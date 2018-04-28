@@ -36,14 +36,14 @@ class TestConstantWidthBinning(unittest.TestCase):
     def tearDown(self):
         print("instance tearDown")
 
-    
     def test_confined_transform(self):
         bb = ConstantWidthBinning(4)
         bb.fit(np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
         print(bb._bins)
-        result = bb.transform(np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2])
+        result = bb.transform(np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
+        target_result = np.array([[0], [0], [1], [1], [0], [0], [1], [2], [3], [3], [3], [0]])
         print(result)
-        #assert all(map(lambda x: x[0][0] == x[1][0], zip(result, self.target_result)))
+        assert all(map(lambda x: x[0][0] == x[1][0], zip(result, target_result)))
 
 
 def BinningBase_suite():

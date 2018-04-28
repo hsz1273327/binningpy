@@ -58,13 +58,16 @@ class TestBinningBase(unittest.TestCase):
             np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
         assert all(map(lambda x: x[0][0] == x[1][0], zip(result, np.array(
             [[0], [0], [1], [1], [1], [0], [1], [2], [3], [3], [3], [1]]))))
+        #print(result)
+        y = bb.inverse_transform(result)
+        print(y)
 
     def test_unconfined_transform(self):
         bb = BinningBase(4, confined=False)
         bb._bins = [[2, 4, 6]]
         result = bb.transform(
             np.array([1, 1, 3, 3, 2, 1, 3, 5, 6, 7, 7, 2]).reshape(-1, 1))
-        print(result)
+        #print(result)
         assert all(map(lambda x: x[0][0] == x[1][0], zip(result, np.array(
             [[0], [0], [1], [1], [1], [0], [1], [2], [3], [3], [3], [1]]))))
 

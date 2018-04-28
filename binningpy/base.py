@@ -75,7 +75,27 @@ class BinningBase(BaseEstimator, TransformerMixin):
         result = []
         for features_line, x in enumerate(X.T):
             result.append(self._transform(x, features_line))
-        return np.array(result).T
+        return np.array(result, dtype=int).T
+
+    def _inverse_transform_item(self, item, features_line):
+        bins = self._bins[features_line]
+        #print(item)
+        if self.confined:
+            return (bins[item],bins[item+1])
+        else:
+            if item == 0:
+                return (-np.inf,bins[item])
+            elif item == len(bins):
+                return (bins[-1],np.inf)
+            else:
+                return (bins[item-1],bins[item])
+        
+
+    def _inverse_transform(self,x, features_line):
+        result = []
+        for i, value in enumerate(x):
+            result.append(self._inverse_transform_item(value, features_line))
+        return result
 
     def inverse_transform(self, X):
         """逆变换.
@@ -87,11 +107,11 @@ class BinningBase(BaseEstimator, TransformerMixin):
         """
         check_is_fitted(self, '_bins')
 
-        X = check_array(X, copy=self.copy, dtype=FLOAT_DTYPES)
-
-        X -= self.min_
-        X /= self.scale_
-        return X
+        X = check_array(X, copy=self.copy)
+        result = []
+        for features_line, x in enumerate(X.T):
+            result.append(self._inverse_transform(x, features_line))
+        return result
 
     def fit(self, X, y=None)->None:
         """训练,未实现.

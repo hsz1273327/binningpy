@@ -5,10 +5,7 @@ from typing import (
 )
 import numpy as np
 from sklearn.utils import check_array
-from sklearn.utils.validation import (
-    FLOAT_DTYPES,
-    check_is_fitted
-)
+from sklearn.utils.validation import FLOAT_DTYPES
 from ..base import BinningBase
 
 class ConstantWidthBinning(BinningBase):
@@ -111,5 +108,3 @@ class ConstantWidthBinning(BinningBase):
             bins = np.array(res)
             self._bins = bins.T
         return self
-
-    
